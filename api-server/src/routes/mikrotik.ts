@@ -168,7 +168,6 @@ router.post("/mikrotik/packages", async (req, res) => {
   }
 });
 
-
 /* ─── SALES REPORT ─── */
 router.post("/mikrotik/sales-report", async (req, res) => {
 
@@ -181,9 +180,11 @@ router.post("/mikrotik/sales-report", async (req, res) => {
   } = req.body;
 
   if (!host || !username) {
+
     res.status(400).json({
       error: "host و username مطلوبان"
     });
+
     return;
   }
 
@@ -198,9 +199,10 @@ router.post("/mikrotik/sales-report", async (req, res) => {
       Number(port) || 8728
     );
 
+    // User Manager v6
     const users =
       await api.write(
-        "/tool/user-manager/user/print"
+        "/tool/user-manager/user/print detail"
       ) as Record<string,string>[];
 
     const counts: Record<string, number> = {};
@@ -229,6 +231,8 @@ router.post("/mikrotik/sales-report", async (req, res) => {
         count
       }))
       .sort((a, b) => b.count - a.count);
+
+    console.log("SALES:", rows);
 
     res.json({
       success: true,
