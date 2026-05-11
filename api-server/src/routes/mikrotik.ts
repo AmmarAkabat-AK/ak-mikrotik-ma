@@ -199,11 +199,13 @@ router.post("/mikrotik/sales-report", async (req, res) => {
       Number(port) || 8728
     );
 
-    // User Manager v6
+    // MikroTik v6 User Manager
     const users =
       await api.write(
-        "/tool/user-manager/user/print detail"
+        "/tool/user-manager/user/print"
       ) as Record<string,string>[];
+
+    console.log("RAW USERS:", users);
 
     const counts: Record<string, number> = {};
 
@@ -215,11 +217,20 @@ router.post("/mikrotik/sales-report", async (req, res) => {
         u["profile-name"] ||
         "غير معروف";
 
+      console.log(
+        "USER:",
+        u.username,
+        "PROFILE:",
+        profile
+      );
+
       if (
         packageName &&
         packageName !== "جميع الباقات" &&
         profile !== packageName
-      ) continue;
+      ) {
+        continue;
+      }
 
       counts[profile] =
         (counts[profile] || 0) + 1;
