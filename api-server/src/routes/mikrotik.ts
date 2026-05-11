@@ -199,21 +199,19 @@ router.post("/mikrotik/sales-report", async (req, res) => {
       Number(port) || 8728
     );
 
-    // MikroTik User Manager v6
-const users =
-  await api.write(
-    "/tool/user-manager/user/getall"
-  ) as Record<string,string>[];
-
+    // User Manager v6 القديم
+    const users =
+      await api.write(
+        "/tool/user-manager/user/profile/print"
+      ) as Record<string,string>[];
 
     const counts: Record<string, number> = {};
 
     for (const u of users) {
 
       const profile =
-        u["actual-profile"] ||
         u.profile ||
-        u["profile-name"] ||
+        u["profile"] ||
         "غير معروف";
 
       if (
@@ -270,6 +268,7 @@ const users =
 
   }
 });
+
 
 
 /* ─── USER MANAGER USERS (مع اليوزرات والياقات) ─── */
