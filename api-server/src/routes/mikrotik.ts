@@ -202,7 +202,7 @@ router.post("/mikrotik/sales-report", async (req, res) => {
     // User Manager v6
     const users =
       await api.write(
-        "/tool/user-manager/user/print detail"
+        "/tool/user-manager/user/print"
       ) as Record<string,string>[];
 
     const counts: Record<string, number> = {};
