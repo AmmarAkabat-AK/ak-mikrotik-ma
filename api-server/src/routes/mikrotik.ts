@@ -157,7 +157,7 @@ router.post("/mikrotik/packages", async (req, res) => {
   let api: RouterOSAPI | null = null;
   try {
     api = await connectRouter(host, username, password || "", Number(port) || 8728);
-    const profiles = await api.write("/tool/user-manager/print");
+    const profiles = await api.write("/tool/user-manager/profile/print");
     const packages = (profiles as Record<string, string>[]).map(p => p.name).filter(Boolean);
     res.json({ packages });
   } catch (err: unknown) {
