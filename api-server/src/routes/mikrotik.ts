@@ -168,7 +168,6 @@ router.post("/mikrotik/packages", async (req, res) => {
   }
 });
 
-
 /* ─── SALES REPORT ─── */
 router.post("/mikrotik/sales-report", async (req, res) => {
 
@@ -180,9 +179,20 @@ router.post("/mikrotik/sales-report", async (req, res) => {
     packageName
   } = req.body;
 
+  if (!host || !username) {
+
+    res.status(400).json({
+      error: "host و username مطلوبان"
+    });
+
+    return;
+  }
+
   let api: RouterOSAPI | null = null;
 
   try {
+
+    console.log("START SALES REPORT");
 
     api = await connectRouter(
       host,
@@ -191,10 +201,13 @@ router.post("/mikrotik/sales-report", async (req, res) => {
       Number(port) || 8728
     );
 
+    // متوافق مع MikroTik User Manager v6
     const users =
       await api.write(
         "/tool/user-manager/user/print"
       ) as Record<string,string>[];
+
+    console.log("USERS LOADED", users.length);
 
     const counts: Record<string, number> = {};
 
@@ -202,14 +215,17 @@ router.post("/mikrotik/sales-report", async (req, res) => {
 
       const profile =
         u["actual-profile"] ||
-        u.profile ||
+        u["profile"] ||
+        u["profile-name"] ||
         "غير معروف";
 
       if (
         packageName &&
         packageName !== "جميع الباقات" &&
         profile !== packageName
-      ) continue;
+      ) {
+        continue;
+      }
 
       counts[profile] =
         (counts[profile] || 0) + 1;
@@ -219,10 +235,17 @@ router.post("/mikrotik/sales-report", async (req, res) => {
       .map(([pkg, count]) => ({
         package: pkg,
         count
-      }));
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    console.log("SALES:", rows);
 
     res.json({
       success: true,
+      total: rows.reduce(
+        (s, r) => s + r.count,
+        0
+      ),
       rows
     });
 
@@ -233,7 +256,10 @@ router.post("/mikrotik/sales-report", async (req, res) => {
         ? err.message
         : String(err);
 
-    console.error("SALES REPORT ERROR:", msg);
+    console.error(
+      "SALES REPORT ERROR:",
+      msg
+    );
 
     res.status(500).json({
       error: msg
