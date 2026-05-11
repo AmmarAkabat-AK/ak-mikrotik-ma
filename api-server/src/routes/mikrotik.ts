@@ -177,17 +177,13 @@ router.post("/mikrotik/sales-report", async (req, res) => {
     username,
     password,
     port,
-    packageName,
-    fromDate,
-    toDate
+    packageName
   } = req.body;
 
   if (!host || !username) {
-
     res.status(400).json({
       error: "host و username مطلوبان"
     });
-
     return;
   }
 
@@ -202,82 +198,32 @@ router.post("/mikrotik/sales-report", async (req, res) => {
       Number(port) || 8728
     );
 
-    // جلب مستخدمي User Manager
-    const users = await api.write(
-      "/tool/user-manager/user/print"
-    ) as Record<string, string>[];
-
-    const from = fromDate
-      ? new Date(fromDate)
-      : null;
-
-    const to = toDate
-      ? new Date(toDate + "T23:59:59")
-      : null;
+    const users =
+      await api.write(
+        "/tool/user-manager/user/print"
+      ) as Record<string,string>[];
 
     const counts: Record<string, number> = {};
 
     for (const u of users) {
 
-      // اسم الباقة
       const profile =
         u["actual-profile"] ||
         u.profile ||
         u["profile-name"] ||
         "غير معروف";
 
-      // فلترة الباقة
       if (
         packageName &&
         packageName !== "جميع الباقات" &&
         profile !== packageName
-      ) {
-        continue;
-      }
+      ) continue;
 
-      // التاريخ
-      const rawDate =
-        u["creation-time"] ||
-        u["created-on"] ||
-        u["last-seen"] ||
-        "";
-
-      let created: Date | null = null;
-
-      if (
-        rawDate &&
-        rawDate !== "never"
-      ) {
-
-        created = new Date(
-          rawDate
-            .replace(/\//g, "-")
-            .replace(" ", "T")
-        );
-
-        if (isNaN(created.getTime())) {
-          created = null;
-        }
-      }
-
-      // فلترة التاريخ
-      if (created) {
-
-        if (from && created < from)
-          continue;
-
-        if (to && created > to)
-          continue;
-      }
-
-      // العد
       counts[profile] =
         (counts[profile] || 0) + 1;
     }
 
-    // تحويل النتائج
-    const rows = Object
-      .entries(counts)
+    const rows = Object.entries(counts)
       .map(([pkg, count]) => ({
         package: pkg,
         count
