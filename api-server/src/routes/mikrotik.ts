@@ -168,6 +168,7 @@ router.post("/mikrotik/packages", async (req, res) => {
   }
 });
 
+
 /* ─── SALES REPORT ─── */
 router.post("/mikrotik/sales-report", async (req, res) => {
 
@@ -199,10 +200,10 @@ router.post("/mikrotik/sales-report", async (req, res) => {
       Number(port) || 8728
     );
 
-    // User Manager v6 القديم
+    // متوافق مع User Manager v6
     const users =
       await api.write(
-        "/tool/user-manager/user/profile/print"
+        "/tool/user-manager/user/print"
       ) as Record<string,string>[];
 
     const counts: Record<string, number> = {};
@@ -210,8 +211,9 @@ router.post("/mikrotik/sales-report", async (req, res) => {
     for (const u of users) {
 
       const profile =
+        u["actual-profile"] ||
         u.profile ||
-        u["profile"] ||
+        u["profile-name"] ||
         "غير معروف";
 
       if (
@@ -268,7 +270,6 @@ router.post("/mikrotik/sales-report", async (req, res) => {
 
   }
 });
-
 
 
 /* ─── USER MANAGER USERS (مع اليوزرات والياقات) ─── */
