@@ -168,8 +168,10 @@ router.post("/mikrotik/packages", async (req, res) => {
   }
 });
 
+
 /* ─── SALES REPORT ─── */
 router.post("/mikrotik/sales-report", async (req, res) => {
+
   const {
     host,
     username,
@@ -181,9 +183,11 @@ router.post("/mikrotik/sales-report", async (req, res) => {
   } = req.body;
 
   if (!host || !username) {
+
     res.status(400).json({
       error: "host و username مطلوبان"
     });
+
     return;
   }
 
@@ -198,7 +202,7 @@ router.post("/mikrotik/sales-report", async (req, res) => {
       Number(port) || 8728
     );
 
-    // جلب جميع المستخدمين
+    // جلب مستخدمي User Manager
     const users = await api.write(
       "/tool/user-manager/user/print"
     ) as Record<string, string>[];
@@ -215,9 +219,10 @@ router.post("/mikrotik/sales-report", async (req, res) => {
 
     for (const u of users) {
 
+      // اسم الباقة
       const profile =
-        u.profile ||
         u["actual-profile"] ||
+        u.profile ||
         u["profile-name"] ||
         "غير معروف";
 
@@ -226,20 +231,24 @@ router.post("/mikrotik/sales-report", async (req, res) => {
         packageName &&
         packageName !== "جميع الباقات" &&
         profile !== packageName
-      ) continue;
+      ) {
+        continue;
+      }
 
-      // تاريخ الإنشاء
+      // التاريخ
       const rawDate =
         u["creation-time"] ||
         u["created-on"] ||
-        u["uptime-started"] ||
+        u["last-seen"] ||
         "";
 
       let created: Date | null = null;
 
-      if (rawDate) {
+      if (
+        rawDate &&
+        rawDate !== "never"
+      ) {
 
-        // معالجة تواريخ MikroTik
         created = new Date(
           rawDate
             .replace(/\//g, "-")
@@ -252,17 +261,23 @@ router.post("/mikrotik/sales-report", async (req, res) => {
       }
 
       // فلترة التاريخ
-      if (from && created && created < from)
-        continue;
+      if (created) {
 
-      if (to && created && created > to)
-        continue;
+        if (from && created < from)
+          continue;
 
+        if (to && created > to)
+          continue;
+      }
+
+      // العد
       counts[profile] =
         (counts[profile] || 0) + 1;
     }
 
-    const rows = Object.entries(counts)
+    // تحويل النتائج
+    const rows = Object
+      .entries(counts)
       .map(([pkg, count]) => ({
         package: pkg,
         count
@@ -285,7 +300,10 @@ router.post("/mikrotik/sales-report", async (req, res) => {
         ? err.message
         : String(err);
 
-    console.error("SALES REPORT ERROR:", msg);
+    console.error(
+      "SALES REPORT ERROR:",
+      msg
+    );
 
     res.status(500).json({
       error: msg
@@ -299,6 +317,8 @@ router.post("/mikrotik/sales-report", async (req, res) => {
 
   }
 });
+
+
 
 /* ─── USER MANAGER USERS (مع اليوزرات والياقات) ─── */
 router.post("/mikrotik/um-users", async (req, res) => {
