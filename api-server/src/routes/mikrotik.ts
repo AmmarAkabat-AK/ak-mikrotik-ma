@@ -199,7 +199,7 @@ router.post("/mikrotik/sales-report", async (req, res) => {
       Number(port) || 8728
     );
 
-    // User Manager v6
+    // MikroTik User Manager v6
     const users =
       await api.write(
         "/tool/user-manager/user/print"
@@ -269,7 +269,6 @@ router.post("/mikrotik/sales-report", async (req, res) => {
 
   }
 });
-
 
 
 /* ─── USER MANAGER USERS (مع اليوزرات والياقات) ─── */
