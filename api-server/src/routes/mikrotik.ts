@@ -200,10 +200,11 @@ router.post("/mikrotik/sales-report", async (req, res) => {
     );
 
     // MikroTik User Manager v6
-    const users =
-      await api.write(
-        "/tool/user-manager/user/print"
-      ) as Record<string,string>[];
+const users =
+  await api.write(
+    "/tool/user-manager/user/getall"
+  ) as Record<string,string>[];
+
 
     const counts: Record<string, number> = {};
 
