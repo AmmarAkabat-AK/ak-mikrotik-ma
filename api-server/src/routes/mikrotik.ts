@@ -170,49 +170,133 @@ router.post("/mikrotik/packages", async (req, res) => {
 
 /* ─── SALES REPORT ─── */
 router.post("/mikrotik/sales-report", async (req, res) => {
-  const { host, username, password, port, packageName, fromDate, toDate } = req.body;
+  const {
+    host,
+    username,
+    password,
+    port,
+    packageName,
+    fromDate,
+    toDate
+  } = req.body;
+
   if (!host || !username) {
-    res.status(400).json({ error: "host و username مطلوبان" });
+    res.status(400).json({
+      error: "host و username مطلوبان"
+    });
     return;
   }
 
   let api: RouterOSAPI | null = null;
-  try {
-    api = await connectRouter(host, username, password || "", Number(port) || 8728);
-    const sessions = await api.write("/tool/user-manager/session/print") as Record<string, string>[];
 
-    const from = fromDate ? new Date(fromDate) : null;
-    const to = toDate ? new Date(toDate + "T23:59:59") : null;
+  try {
+
+    api = await connectRouter(
+      host,
+      username,
+      password || "",
+      Number(port) || 8728
+    );
+
+    // جلب جميع المستخدمين
+    const users = await api.write(
+      "/tool/user-manager/user/print"
+    ) as Record<string, string>[];
+
+    const from = fromDate
+      ? new Date(fromDate)
+      : null;
+
+    const to = toDate
+      ? new Date(toDate + "T23:59:59")
+      : null;
 
     const counts: Record<string, number> = {};
 
-    for (const s of sessions) {
-      const profileName = s.profile || s["profile-name"] || "";
-      if (!profileName) continue;
-      if (packageName && packageName !== "جميع الباقات" && profileName !== packageName) continue;
+    for (const u of users) {
 
-      let sessionDate: Date | null = null;
-      if (s.started || s["start-time"]) {
-        const raw = s.started || s["start-time"];
-        sessionDate = new Date(raw.replace(/(\w{3})\/(\d+)\/(\d{4})/, "$1 $2 $3"));
+      const profile =
+        u.profile ||
+        u["actual-profile"] ||
+        u["profile-name"] ||
+        "غير معروف";
+
+      // فلترة الباقة
+      if (
+        packageName &&
+        packageName !== "جميع الباقات" &&
+        profile !== packageName
+      ) continue;
+
+      // تاريخ الإنشاء
+      const rawDate =
+        u["creation-time"] ||
+        u["created-on"] ||
+        u["uptime-started"] ||
+        "";
+
+      let created: Date | null = null;
+
+      if (rawDate) {
+
+        // معالجة تواريخ MikroTik
+        created = new Date(
+          rawDate
+            .replace(/\//g, "-")
+            .replace(" ", "T")
+        );
+
+        if (isNaN(created.getTime())) {
+          created = null;
+        }
       }
 
-      if (from && sessionDate && sessionDate < from) continue;
-      if (to && sessionDate && sessionDate > to) continue;
+      // فلترة التاريخ
+      if (from && created && created < from)
+        continue;
 
-      counts[profileName] = (counts[profileName] || 0) + 1;
+      if (to && created && created > to)
+        continue;
+
+      counts[profile] =
+        (counts[profile] || 0) + 1;
     }
 
     const rows = Object.entries(counts)
-      .map(([pkg, count]) => ({ package: pkg, count }))
+      .map(([pkg, count]) => ({
+        package: pkg,
+        count
+      }))
       .sort((a, b) => b.count - a.count);
 
-    res.json({ rows });
+    res.json({
+      success: true,
+      total: rows.reduce(
+        (s, r) => s + r.count,
+        0
+      ),
+      rows
+    });
+
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: msg });
+
+    const msg =
+      err instanceof Error
+        ? err.message
+        : String(err);
+
+    console.error("SALES REPORT ERROR:", msg);
+
+    res.status(500).json({
+      error: msg
+    });
+
   } finally {
-    try { api?.close(); } catch {}
+
+    try {
+      api?.close();
+    } catch {}
+
   }
 });
 
