@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 // @ts-ignore - node-routeros doesn't have proper types
 import { RouterOSAPI } from "node-routeros";
-
+import ping from "ping";
 const router: IRouter = Router();
 
 const TIMEOUT = 8000;
@@ -289,5 +289,64 @@ router.post("/mikrotik/um-users", async (req, res) => {
     try { api?.close(); } catch {}
   }
 });
+/* ─── DEVICE PING MONITOR ─── */
+
+router.post(
+
+  "/ping-device",
+
+  async (req, res) => {
+
+    try {
+
+      const { ip } = req.body;
+
+      if (!ip) {
+
+        res.status(400).json({
+
+          error: "IP مطلوب"
+
+        });
+
+        return;
+
+      }
+
+      const result = await ping.promise.probe(ip, {
+
+        timeout: 5
+
+      });
+
+      res.json({
+
+        online: result.alive,
+
+        time: result.time,
+
+        ip
+
+      });
+
+    } catch (err: unknown) {
+
+      const msg =
+
+        err instanceof Error
+          ? err.message
+          : String(err);
+
+      res.status(500).json({
+
+        error: msg
+
+      });
+
+    }
+
+  }
+
+);
 
 export default router;
